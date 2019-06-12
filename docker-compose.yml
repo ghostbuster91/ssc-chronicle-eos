@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+  nodeosd:
+    build:
+      context: .
+    image: softwaremill/eos:448287d
+    command: /opt/eosio/bin/nodeosd.sh --data-dir /opt/eosio/bin/data-dir -e --http-alias=nodeosd:8888 --http-alias=127.0.0.1:8888 --http-alias=localhost:8888 --http-validate-host=false --verbose-http-errors --trace-history --chain-state-history --plugin eosio::chain_plugin --plugin eosio::http_plugin --disable-replay-opts --plugin eosio::state_history_plugin
+    hostname: nodeosd
+    container_name: nodeosd
+    ports:
+      - 8888:8888
+      - 9876:9876
+    expose:
+      - "8888"
+      - "8080"
+    cap_add:
+      - IPC_LOCK
+    stop_grace_period: 10m
+
+  keosd:
+    container_name: keosd
+    image: softwaremill/eos:448287d
+    command: /opt/eosio/bin/keosd --wallet-dir /opt/eosio/bin/data-dir --http-server-address=0.0.0.0:8900 --http-alias=keosd:8900 --http-alias=localhost:8900  --plugin  eosio::wallet_plugin --plugin  eosio::wallet_api_plugin --http-validate-host=false --verbose-http-errors
+    hostname: keosd
+    expose:
+      - "8900"
+    ports:
+      - 8900:8900
+    links:
+      - nodeosd
+    stop_grace_period: 10m
+
+  chronicle:
+    container_name: chronicle
+    build: eos-tribe-eos-chronicle-docker
+    command: /opt/chronicle-receiver --data-dir=./ --host=nodeosd --port=8080 --mode=scan --plugin=exp_ws_plugin --exp-ws-host=172.17.0.1 --exp-ws-port=8800 --exp-ws-bin-header=true
+    
